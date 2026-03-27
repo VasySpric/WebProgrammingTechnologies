@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VL53L0X Distance Monitor</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .box {
+      width: 360px;
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    .value {
+      font-size: 42px;
+      font-weight: bold;
+      margin: 18px 0 8px;
+      color: #00d2ff;
+    }
+
+    .status {
+      margin-bottom: 18px;
+      opacity: 0.8;
+    }
+
+    canvas {
+      width: 100%;
+      height: 180px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>VL53L0X Monitor</h1>
+    <div id="distance" class="value">--</div>
+    <div id="status" class="status">Connecting...</div>
+    <canvas id="chart" width="320" height="180"></canvas>
+  </div>
+
+  <script>
+    const distanceEl = document.getElementById("distance");
+    const statusEl = document.getElementById("status");
+    const canvas = document.getElementById("chart");
+    const ctx = canvas.getContext("2d");
+
+    const points = [];
+    const maxPoints = 40;
+
+    const ws = new WebSocket(`ws://${location.hostname}:81/`);
+
+    ws.onopen = () => {
+      statusEl.textContent = "WebSocket connected";
+    };
+
+    ws.onclose = () => {
+      statusEl.textContent = "WebSocket disconnected";
+    };
+
+    ws.onerror = () => {
+      statusEl.textContent = "WebSocket error";
+    };
+
+    ws.onmessage = (event) => {
+      const value = event.data;
+
+      if (value === "OUT") {
+        distanceEl.textContent = "OUT";
+        return;
+      }
+
+      const distance = parseInt(value, 10);
+      distanceEl.textContent = distance + " mm";
+
+      points.push(distance);
+      if (points.length > maxPoints) {
+        points.shift();
+      }
+
+      drawChart();
+    };
+
+    function drawChart() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (points.length < 2) return;
+
+      const maxVal = Math.max(...points, 400);
+      const minVal = 0;
+
+      ctx.beginPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#00d2ff";
+
+      for (let i = 0; i < points.length; i++) {
+        const x = (i / (maxPoints - 1)) * canvas.width;
+        const y = canvas.height - ((points[i] - minVal) / (maxVal - minVal)) * canvas.height;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+
+      ctx.stroke();
+    }
+  </script>
+</body>
+</html>
