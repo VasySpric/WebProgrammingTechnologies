@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP Config</title>
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.container {
+    background: rgba(255,255,255,0.10);
+    padding: 25px;
+    border-radius: 15px;
+    width: 320px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.25);
+}
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #00ffcc;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:hover {
+    background: #00ccaa;
+}
+.info {
+    margin-top: 12px;
+    font-size: 13px;
+    text-align: center;
+    opacity: 0.9;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Wi-Fi Setup</h1>
+    <form action="/save" method="POST">
+        <input name="ssid" placeholder="SSID" required>
+        <input name="pass" placeholder="Password" type="password">
+        <button type="submit">Save and connect</button>
+    </form>
+    <div class="info">After saving, ESP8266 will reboot and try to connect.</div>
+</div>
+</body>
+</html>
