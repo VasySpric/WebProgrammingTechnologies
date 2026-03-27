@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP8266 LED Panel</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, #1d4ed8 0%, transparent 25%),
+        radial-gradient(circle at bottom right, #7c3aed 0%, transparent 25%),
+        linear-gradient(160deg, #0b1120, #111827);
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 380px;
+      padding: 26px;
+      border-radius: 22px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(12px);
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(59, 130, 246, 0.14);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+
+    .title {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .status-card {
+      margin-top: 22px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+    }
+
+    .ring {
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(51, 65, 85, 0.4);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.45);
+      transition: 0.25s ease;
+    }
+
+    .ring.on {
+      box-shadow:
+        0 0 30px rgba(34, 211, 238, 0.45),
+        inset 0 0 18px rgba(255, 255, 255, 0.22);
+      background: rgba(34, 211, 238, 0.14);
+    }
+
+    .core {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #334155;
+      transition: 0.25s ease;
+    }
+
+    .ring.on .core {
+      background: linear-gradient(145deg, #22d3ee, #3b82f6);
+      box-shadow: 0 0 24px rgba(34, 211, 238, 0.75);
+    }
+
+    .state-label {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .state-value {
+      font-size: 22px;
+      font-weight: 700;
+      min-height: 28px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-enable {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .btn-disable {
+      background: linear-gradient(135deg, #f43f5e, #dc2626);
+    }
+
+    .message {
+      margin-top: 18px;
+      min-height: 20px;
+      font-size: 14px;
+      color: #cbd5e1;
+      text-align: center;
+    }
+
+    .footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="top">
+      <div>
+        <h1 class="title">LED Panel</h1>
+        <p class="subtitle">ESP8266 remote control</p>
+      </div>
+      <div class="chip">ONLINE</div>
+    </div>
+
+    <div class="status-card">
+      <div id="ring" class="ring">
+        <div class="core"></div>
+      </div>
+
+      <div class="state-label">Current state</div>
+      <div id="state-value" class="state-value">Loading...</div>
+
+      <div class="controls">
+        <button class="btn-enable" onclick="sendCommand(true)">Увімкнути</button>
+        <button class="btn-disable" onclick="sendCommand(false)">Вимкнути</button>
+      </div>
+
+      <div id="status-text" class="message">Отримання статусу...</div>
+    </div>
+
+    <div class="footer">
+      <span>LittleFS</span>
+      <span>ESP8266</span>
+    </div>
+  </div>
+
+  <script>
+    const ring = document.getElementById('ring');
+    const stateValue = document.getElementById('state-value');
+    const statusText = document.getElementById('status-text');
+
+    function renderState(isOn) {
+      if (isOn) {
+        ring.classList.add('on');
+        stateValue.textContent = 'УВІМКНЕНО';
+        statusText.textContent = 'Світлодіод активний';
+      } else {
+        ring.classList.remove('on');
+        stateValue.textContent = 'ВИМКНЕНО';
+        statusText.textContent = 'Світлодіод неактивний';
+      }
+    }
+
+    async function updateStatus() {
+      try {
+        const response = await fetch('/api/status', { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+
+        const data = await response.json();
+        renderState(data.led_on);
+      } catch (e) {
+        console.error(e);
+        statusText.textContent = 'Помилка отримання статусу';
+      }
+    }
+
+    async function sendCommand(state) {
+      try {
+        statusText.textContent = 'Надсилання команди...';
+
+        const response = await fetch('/api/control', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ led_on: state })
+        });
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+
+        await updateStatus();
+      } catch (e) {
+        console.error(e);
+        statusText.textContent = 'Помилка зв’язку з ESP8266';
+      }
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 2000);
+  </script>
+</body>
+</html>
