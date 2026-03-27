@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP8266 Secure Control</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .box {
+      width: 320px;
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .led {
+      width: 80px;
+      height: 80px;
+      margin: 20px auto;
+      border-radius: 50%;
+      background: #334155;
+      transition: 0.2s;
+    }
+
+    .led.on {
+      background: #00d2ff;
+      box-shadow: 0 0 20px #00d2ff;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .on-btn { background: #16a34a; }
+    .off-btn { background: #dc2626; }
+
+    .status {
+      margin-top: 16px;
+      min-height: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>ESP8266 Secure Panel</h2>
+
+    <div id="led" class="led"></div>
+
+    <button class="on-btn" onclick="setLed(true)">Turn ON</button>
+    <button class="off-btn" onclick="setLed(false)">Turn OFF</button>
+
+    <div id="status" class="status">Loading...</div>
+  </div>
+
+  <script>
+    const led = document.getElementById('led');
+    const statusText = document.getElementById('status');
+
+    function render(on) {
+      if (on) {
+        led.classList.add('on');
+        statusText.textContent = 'LED ON';
+      } else {
+        led.classList.remove('on');
+        statusText.textContent = 'LED OFF';
+      }
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const data = await res.json();
+        render(data.led_on);
+      } catch (e) {
+        statusText.textContent = 'Status error';
+        console.error(e);
+      }
+    }
+
+    async function setLed(state) {
+      try {
+        statusText.textContent = 'Sending...';
+
+        const res = await fetch('/api/control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ led_on: state })
+        });
+
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const data = await res.json();
+        render(data.led_on);
+      } catch (e) {
+        statusText.textContent = 'Control error';
+        console.error(e);
+      }
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>
